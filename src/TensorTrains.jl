@@ -33,10 +33,10 @@ module Condition
 include("Condition.jl")
 end  # module Condition
 
-module Algorithms
+module Solvers
 # Simple solvers
-include("Algorithms.jl")
-end  # module Algorithms
+include("Solvers.jl")
+end  # module Solvers
 
 module TTPy
 # Interface to python TT toolbox
