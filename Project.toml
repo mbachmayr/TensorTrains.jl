@@ -1,0 +1,8 @@
+name = "TensorTrains"
+uuid = "6a7a8bb0-4806-11e9-323f-e9cf5e27521e"
+authors = ["Markus Bachmayr <bachmayr@uni-mainz.de>"]
+version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
