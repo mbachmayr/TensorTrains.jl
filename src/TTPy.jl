@@ -11,7 +11,7 @@
 # push!(args, "ttpy")
 # pip.main(args)
 
-using PyCall
+using PyCall, Logging
 using TensorTrains
 
 export pyvec, pymat, Tensor, TensorMatrix, amen
@@ -39,4 +39,5 @@ amen(A::TensorMatrix, b::Tensor, x::Tensor, ɛ::Float64,
     kickrank::Integer = 4, nswp::Integer = 20) =
   Tensor(amen_pkg.amen_solve(pymat(A), pyvec(b), pyvec(x), ɛ, kickrank, nswp))
 catch;
+    @warn "import of Python TT Toolbox failed"
 end

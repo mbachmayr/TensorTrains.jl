@@ -4,7 +4,7 @@
 # Basic functionality of the tensor train format
 module TensorTrains
 
-using LinearAlgebra
+using LinearAlgebra, Logging
 
 const Tensor3 = Array{Float64,3}
 const Tensor4 = Array{Float64,4}
@@ -139,7 +139,7 @@ end
 
 # convert tensor matrix to regular tensor
 function Tensor(t::TensorMatrix)
-  r = Tensor(length(t))
+  r = Tensor(undef, length(t))
   for i in eachindex(t)
     r[i] = reshape(t[i], (size(t[i],1),
           size(t[i],2)*size(t[i],3),size(t[i],4)))
@@ -149,7 +149,7 @@ end
 
 # convert tensor to tensor matrix with specified mode sizes
 function TensorMatrix(t::Tensor, n::Vector{Tuple{Int64,Int64}})
-  r = TensorMatrix(length(t))
+  r = TensorMatrix(undef, length(t))
   for i in eachindex(t)
     r[i] = reshape(t[i], (size(t[i],1), n[i]..., size(t[i],3)))
   end
@@ -231,7 +231,7 @@ end
 function tteye(L::Int64)
   t = TensorMatrix(2, L, 1)
   for i in eachindex(t)
-    t[i][1,:,:,1] = eye(2)
+    t[i][1,:,:,1] = Matrix{Float64}(I, 2, 2)
   end
   return t
 end
@@ -243,7 +243,7 @@ function ttdiagm(t::Tensor)
   for k = 1:L
     for i = 1:size(T[k],1)
       for j = 1:size(T[k],4)
-        T[k][i,:,:,j] = diagm(t[k][i,:,j])
+        T[k][i,:,:,j] = diagm(0=>t[k][i,:,j])
       end
     end
   end
@@ -259,7 +259,7 @@ function decompress(t::Tensor)
     si = size(t[i])
     r = reshape(r*reshape(t[i], (si[1], si[2]*si[3])), (r1*si[2], si[3]))
   end
-  return reshape(r, (sizes(t)...))
+  return reshape(r, (sizes(t)...,))
 end
 
 # turn tt representation into full array with reversed order of indices
@@ -289,7 +289,7 @@ function unfold(T::TensorMatrix)
   dim[1:L] = (2L-1):-2:1;
   dim[(L+1):(2L)] = (2L):-2:2;
   return reshape(dimpermute(
-    reshape(decompress(t), (s[:]...)),
+    reshape(decompress(t), (s[:]...,)),
     dim), (prod(s[1,:]), prod(s[2,:])))
 end
 
@@ -470,7 +470,7 @@ end
 
 # compute representation of S * T
 function matmat(S::TensorMatrix, T::TensorMatrix)
-  R = TensorMatrix(length(S))
+  R = TensorMatrix(undef, length(S))
   for m in eachindex(S)
     R[m] = matmat(S[m], T[m])
   end
@@ -530,16 +530,17 @@ end
 # euclidean norm of tt tensor (t is orthogonalized)
 function norm!(t::Tensor)
   leftOrth!(t)
-  return vecnorm(t[1])
+  return norm(t[1])
 end
 
 # orthogonalize to the right in core i
 function rightOrth!(t::Tensor, i::Int64)
   s = size(t[i])
-  Q, R = qr(reshape(t[i],(s[1]*s[2],s[3])))
+  F = qr(reshape(t[i],(s[1]*s[2],s[3])))
+  Q = Matrix(F.Q)
   t[i] = reshape(Q, (s[1],s[2],size(Q,2)))
   s = size(t[i+1])
-  t[i+1] = reshape(R*reshape(t[i+1],(s[1],s[2]*s[3])), (size(R,1),s[2],s[3]))
+  t[i+1] = reshape(F.R*reshape(t[i+1],(s[1],s[2]*s[3])), (size(F.R,1),s[2],s[3]))
 end
 
 # orthogonalize entire tensor to the right
@@ -552,10 +553,11 @@ end
 # orthogonalize to the left in core i
 function leftOrth!(t::Tensor, i::Int64)
   s = size(t[i])
-  Q, R = qr(reshape(t[i],(s[1],s[2]*s[3]))')
+  F = qr(reshape(t[i],(s[1],s[2]*s[3]))')
+  Q = Matrix(F.Q)
   t[i] = reshape(Q', (size(Q,2),s[2],s[3]))
   s = size(t[i-1])
-  t[i-1] = reshape(reshape(t[i-1],(s[1]*s[2],s[3]))*R', (s[1],s[2],size(R,1)))
+  t[i-1] = reshape(reshape(t[i-1],(s[1]*s[2],s[3]))*F.R', (s[1],s[2],size(F.R,1)))
 end
 
 # orthogonalize entire tensor to the left
@@ -577,7 +579,7 @@ function svd!(t::Tensor)
       svlist[i-1] = σ
       s = (size(V,2), s[2], s[3])
       t[i] = reshape(V', s)
-      scale!(U, σ)
+      rmul!(U, Diagonal(σ))
       s = size(t[i-1])
       t[i-1] = reshape(reshape(t[i-1], (s[1]*s[2],s[3]))*U, (s[1],s[2],size(U,2)))
     end
@@ -634,12 +636,12 @@ function softthresh!(t::Tensor, α::Float64)
     for i = length(t):-1:2
       s = size(t[i])
       U, σ, V = svd(reshape(t[i], (s[1],s[2]*s[3])))
-      σ = σ[σ .> α] - α
+      σ = σ[σ .> α] .- α
       r = length(σ)
       s = (r, s[2], s[3])
       t[i] = reshape(V[:,1:r]', s)
       U = U[:,1:r]
-      scale!(U, σ)
+      rmul!(U, Diagonal(σ))
       s = size(t[i-1])
       t[i-1] = reshape(reshape(t[i-1], (s[1]*s[2],s[3]))*U, (s[1],s[2],size(U,2)))
     end
@@ -687,7 +689,7 @@ transpose(t::Tensor4) = permutedims(t, [1,3,2,4])
 function ttkron(A::Tensor4, B::Tensor4)
   return reshape(permutedims(reshape(A[:]*B[:]',
       (size(A)...,size(B)...)), [1,5,2,6,3,7,4,8]),
-      ((size(A,i)*size(B,i) for i = 1:4)...) )
+      ((size(A,i)*size(B,i) for i = 1:4)...,) )
 end
 
 function ttkron(A::TensorMatrix, B::TensorMatrix)
@@ -701,7 +703,7 @@ end
 function ttkron(A::Tensor3, B::Tensor3)
   return reshape(permutedims(reshape(A[:]*B[:]',
       (size(A)...,size(B)...)), [1,4,2,5,3,6]),
-      ((size(A,i)*size(B,i) for i = 1:3)...) )
+      ((size(A,i)*size(B,i) for i = 1:3)...,) )
 end
 
 function ttkron(A::Tensor, B::Tensor)
