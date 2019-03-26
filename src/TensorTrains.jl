@@ -77,6 +77,12 @@ function Tensor(n::Vector{Int64}, r::Vector{Int64})
   return m
 end
 
+# construct uninitialized tensor train with order d
+function Tensor(d::Int64)
+  m = Vector{Tensor3}(undef, d)
+  return m
+end
+
 # construct tensor train of order d with mode sizes n
 function Tensor(n::Int64, d::Int64)
   m = Tensor3[Tensor3(1,n,0), fill(Tensor3(0,n,0), d-2)..., Tensor3(0,n,1)]
@@ -119,6 +125,11 @@ function TensorMatrix(n::Vector{Tuple{Int64,Int64}}, r::Vector{Int64})
     m[i] = Tensor4(r[i-1], n[i]..., r[i])
   end
   m[end] = Tensor4(r[end], n[end]..., 1)
+  return m
+end
+
+function TensorMatrix(d::Int64)
+  m = Vector{Tensor4}(undef, d)
   return m
 end
 
