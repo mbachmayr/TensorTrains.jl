@@ -46,12 +46,8 @@ module TTPy
 # Conda.add("numpy")
 # Conda.add("scipy")
 # Conda.add("cython")
-# @pyimport pip
-# args = String[]
-# push!(args, "install")
-# push!(args, "--user")
-# push!(args, "ttpy")
-# pip.main(args)
+# Conda.add("pip")
+# run(`$(PyCall.pyprogramname) -m pip install --user ttpy`)
 include("TTPy.jl")
 end  # module TTPy
 
