@@ -1,4 +1,5 @@
-# To install the required python packages via julia:
+# To install the required python packages via julia 
+# (run automatically when the package is built):
 #
 # using Conda, PyCall
 # Conda.add("numpy")
