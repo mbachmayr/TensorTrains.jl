@@ -1,4 +1,4 @@
-using Pkg
+import Pkg
 Pkg.add("Conda")
 Pkg.add("PyCall")
 Pkg.add("Logging")
