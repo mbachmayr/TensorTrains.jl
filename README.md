@@ -2,7 +2,7 @@
 
 Example [Julia](https://julialang.org/) code for <https://arxiv.org/abs/1802.09062>. This package provides a basic implementation of tensor trains. The functionality implemented here is used by the [TensorTrainFEM](https://github.com/mbachmayr/TensorTrainFEM.jl) package to provide multilevel tensor train finite element solvers.
 
-To install the package, run `using Pkg; Pkg.add("https://github.com/mbachmayr/TensorTrains.jl.git")`.
+To install the package, run `using Pkg; Pkg.add(PackageSpec(url="https://github.com/mbachmayr/TensorTrains.jl.git"))` in Julia or `add https://github.com/mbachmayr/TensorTrains.jl.git` in the Package Manager prompt.
 
 The main module has the following submodules:
 - `TensorTrains.Solvers`, iterative solvers implemented in Julia (following [this paper](http://dx.doi.org/10.1007/s10208-016-9314-z), which provides a rigorous convergence theory).

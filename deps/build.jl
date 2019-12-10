@@ -1,3 +1,7 @@
+using Pkg
+Pkg.add("Conda")
+Pkg.add("PyCall")
+Pkg.add("Logging")
 using Conda, PyCall, Logging
 try
 	Conda.add("numpy")
